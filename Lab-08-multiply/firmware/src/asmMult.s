@@ -75,7 +75,117 @@ asmMult:
      * Use it to test the C test code */
     
     /*** STUDENTS: Place your code BELOW this line!!! **************/
+    mov r2,0 /* register for 0 */
     
+    ldr r4,=a_Multiplicand /* resets a_multiplicand to 0 */
+    str r2,[r4]
+    
+    ldr r5,=b_Multiplier /* resets b_Multiplier to 0 */
+    str r2,[r5]
+    
+    ldr r6,=rng_Error /* resets rng_Error to 0 */
+    str r2,[r6]
+    
+    ldr r10,=a_Sign /* resets a _Sign to 0 */
+    str r2,[r10]
+    
+    ldr r11,=b_Sign /* resets b_Sign to 0 */
+    str r2,[r11]
+    
+    ldr r12,=prod_Is_Neg /* resets prod_Is_Neg to 0 */
+    str r2,[r3]
+    
+    ldr r3,=a_Abs /* resets a_Abs to 0 */
+    str r2,[r3]
+    
+    ldr r3,=b_Abs /* resets b_Abs to 0 */
+    str r2,[r3] 
+    
+    ldr r3,=init_Product /* resets init_Product to 0 */
+    str r2,[r3]
+    
+    ldr r3,=final_Product /* resets final_Product to 0 */
+    str r2,[r3]
+    
+    str r0,[r4] /* copy r0 into a_Multiplicand */
+    str r1,[r5] /* copy r1 into b_Multiplier */
+    
+    LDR r7,=4294934528 /* 0xffff8000 used to check if multiplicand fit in 16 bit */
+    AND r8,r0,r7 /* and logic to test sign bits */
+    CMP r8,r7 /* if all sign bits 1, then value in valid range for sign 16 bit */
+    beq multiplier_check /* branch to next step */
+    CMP r8,r2 /* if all sign bits 0, then value in valid range for sign 16 bit */
+    beq multiplier_check /* branch to next step */
+    /* if multiplicand sign bits not all 1 or 0, then error */
+
+error:
+    mov r2,1 /* register for 1 */
+    str r2,[r6] /* set rng_Error to 1 */
+    mov r0,0 /* set r0 to 0 */
+    b done
+    
+multiplier_check:
+    AND r9,r1,r7 /* and logic to test sign bits of multiplier */ 
+    CMP r9,r7 /* if all sign bits 1, then value in valid range for sign 16 bit */ 
+    beq store_sign /* move on to store sign bits */ 
+    CMP r9,r2 /* if all sign bits 0, then value in valid range for sign 16 bit */ 
+    beq store_sign /* move on to store sign bits */ 
+    b error /* if multiplier sign bits not all 1 or 0, then error */
+    
+store_sign:
+    str r8,[r10] /* store sign bits for multiplicand */
+    str r9,[r11] /* store sign bits for multiplier */
+    EOR r4,r8,r9 /* if both sign bits same result is 0, else result is 1 */
+    CMP r4,r2 /* compare result to 0 */
+    beq prod_positive /* if equal, then product is positive so set to 0 */
+    mov r2,1 /* if not equal, product is negative */
+    str r2,[r12] /* store 1 into prod_Is_Neg */
+    b absolute_value /* branch to next step */
+
+prod_positive:
+    str r2,[r12] /* if result is 0, prod_Is_Neg is set to 0 */
+    
+absolute_value:
+    LDR r2,=65535 /* 0x0000FFFF used to get absolute value */
+    AND r0,r0,r2 /* abs value for a_multiplicand */
+    AND r1,r1,r2 /* abs value for b_multiplier */
+    LDR r3,=a_Abs
+    str r0,[r3] /* stores abs value of a into mem location */
+    LDR r3,=b_Abs
+    str r1,[r3] /* stores abs value of b into mem location */
+    
+    mov r5,0 /* initially sets register for product to 0 */
+  
+shift_and_add:
+    mov r2,0 /* register for 0 */
+    CMP r1,r2 /* check if multiplier equal 0 */
+    beq product_done /* if multiplier equals 0 */
+    mov r2,1 /* register for 0x00000001 */
+    AND r6,r1,r2 /* checks multiplier LSB if 0 or 1 */
+    CMP r6,0 /* checks if LSB 0 */
+    beq LSB_not_1 /* if 0 go straight to shifts */
+    ADD r5,r5,r0 /* if LSB 1, add product and multiplicand */
+    
+LSB_not_1:
+    LSR r1,r1,1 /* shift multiplier 1 to right */
+    LSL r0,r0,1 /* shift multiplicand 1 to left */
+    b shift_and_add /* go back to shift_and_add loop */
+    
+product_done:
+    LDR r3,=init_Product /* register for initial product */
+    str r5,[r3] /* stores product into mem location of init_Product */
+
+check_final:
+    LDR r2,[r12] /* loads if product is negative or not */
+    CMP r2,0 /* if positive, store product into final product right away */
+    beq final_done /* if negative, change sign values to 1 */
+    LDR r2,=4294901760 /* loads 0xFFFF0000 to change sign values to 1 */
+    ORR r5,r2,r5 /* or logic to get sign values to 1, leaves actual value alone */
+    
+final_done:
+    ldr r3,=final_Product /* register for address of final_Product */
+    str r5,[r3] /* store product into final product */
+    ldr r0,[r3] /* final result to r0 */
     
     /*** STUDENTS: Place your code ABOVE this line!!! **************/
 
